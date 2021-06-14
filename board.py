@@ -25,10 +25,71 @@ def update_arr(piece, location, arr):
     else:
         arr[5][location[0]][location[1]] = 1
 
-def get_output(move):
+codes, i = {}, 0
+for nSquares in range(1, 8):
+    for direction in ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]:
+        codes[(nSquares, direction)] = i
+        i += 1
+for two in ["N","S"]:
+    for one in ["E","W"]:
+        codes[("kn", two, one)] = i
+        i += 1
+for two in ["E","W"]:
+    for one in ["N","S"]:
+        codes[("kn", two, one)] = i
+        i += 1
+
+
+def get_output(move, turn):
     out_arr = np.zeros((73,8,8))
-    start_square = chess.square_name(move.from_square)
-    end_square = chess.square_name(move.to_square)
+    file_diff = chess.square_file(move.to_square) - chess.square_file(move.from_square)
+    rank_diff = chess.square_rank(move.to_square) - chess.square_rank(move.from_square)
+    if not turn:
+        file_diff = file_diff * -1
+        rank_diff = rank_diff * -1
+    if file_diff == 0:
+        if rank_diff > 0:
+            code = codes[(rank_diff, "N")]
+        else:
+            code = codes[(abs(rank_diff), "S")]
+    elif rank_diff == 0:
+        if file_diff > 0:
+            code = codes[(file_diff, "E")]
+        else:
+            code = codes[(abs(file_diff), "W")]
+    elif abs(rank_diff) == abs(file_diff):
+        if rank_diff > 0 and file_diff > 0:
+            code = codes[(abs(rank_diff), "NE")]
+        elif rank_diff > 0 and file_diff < 0:
+            code = codes[(abs(rank_diff), "NW")]
+        elif rank_diff < 0 and file_diff < 0:
+            code = codes[(abs(rank_diff), "SW")]
+        else:
+            code = codes[(abs(rank_diff), "SE")]
+    elif (abs(rank_diff) + abs(file_diff)) == 3:
+        if rank_diff == 2:
+            dirL = "N"
+        elif rank_diff == -2:
+            dirL = "S"
+        elif file_diff == 2:
+            dirL = "E"
+        else:
+            dirL = "W"
+        if rank_diff == 1:
+            dirS = "N"
+        elif rank_diff == -1:
+            dirS = "S"
+        elif file_diff == 1:
+            dirS = "E"
+        else:
+            dirS = "W"
+        code = codes[("kn", dirL, dirS)]
+
+    sq_location = (7 - chess.square_rank(move.from_square), chess.square_file(move.from_square))
+    out_arr[code][sq_location[0]][sq_location[1]] = 1
+    if not turn:
+        out_arr[code] = np.rot90(out_arr[code], 2,(0,1))
+    return out_arr[code], code
 
 def pgn_to_arr(board):
     white_arr = np.zeros((6,8,8))
@@ -43,7 +104,6 @@ def pgn_to_arr(board):
                     update_arr(piece, location, white_arr)
                 else:
                     update_arr(piece, location, black_arr)
-    ret_arr = None
     if board.turn:
         ret_arr = np.concatenate((white_arr,black_arr))
     else:
@@ -55,14 +115,17 @@ def pgn_to_arr(board):
 
 for move in first_game.mainline_moves():
     # print(board.has_kingside_castling_rights(chess.BLACK))
-    board.push(move)
+    print(board)
+    print(board.turn)
     print(chess.square_name(move.from_square))
     print(chess.square_name(move.to_square))
-    print(board)
-    if not board.has_castling_rights(chess.WHITE):
-        break
-    print(board.turn)
+    out_arr, code = get_output(move, board.turn)
+    print(out_arr)
+    print(code)
+    board.push(move)
     #print(pgn_to_arr(board))
+
+
 
 
 
