@@ -1,11 +1,7 @@
 import chess
 import chess.pgn
 import numpy as np
-
-pgn = open(r'\Users\dfrid\Downloads\chessgames2\games.pgn')
-
-first_game = chess.pgn.read_game(pgn)
-board = first_game.board()
+import io
 
 
 
@@ -38,6 +34,10 @@ for two in ["E","W"]:
     for one in ["N","S"]:
         codes[("kn", two, one)] = i
         i += 1
+for move in ["N","NW","NE"]:
+    for promote_to in ["r","n","b"]:
+        codes[("underpromotion", move, promote_to)] = i
+        i += 1
 
 
 def get_output(move, turn):
@@ -47,7 +47,16 @@ def get_output(move, turn):
     if not turn:
         file_diff = file_diff * -1
         rank_diff = rank_diff * -1
-    if file_diff == 0:
+    if move.promotion in [2,3,4]:
+        promote_piece = chess.piece_symbol(move.promotion)
+        if file_diff == 1:
+            dir = "E"
+        elif file_diff == -1:
+            dir = "W"
+        else:
+            dir = ""
+        code = codes[("underpromotion", "N"+dir, promote_piece)]
+    elif file_diff == 0:
         if rank_diff > 0:
             code = codes[(rank_diff, "N")]
         else:
@@ -89,7 +98,7 @@ def get_output(move, turn):
     out_arr[code][sq_location[0]][sq_location[1]] = 1
     if not turn:
         out_arr[code] = np.rot90(out_arr[code], 2,(0,1))
-    return out_arr[code], code
+    return out_arr
 
 def pgn_to_arr(board):
     white_arr = np.zeros((6,8,8))
@@ -104,27 +113,35 @@ def pgn_to_arr(board):
                     update_arr(piece, location, white_arr)
                 else:
                     update_arr(piece, location, black_arr)
+    if board.has_kingside_castling_rights(chess.WHITE):
+        white_king_cast = np.ones((1,8,8))
+    else:
+        white_king_cast = np.zeros((1,8, 8))
+    if board.has_queenside_castling_rights(chess.WHITE):
+        white_queen_cast = np.ones((1,8, 8))
+    else:
+        white_queen_cast = np.zeros((1,8, 8))
+    if board.has_kingside_castling_rights(chess.BLACK):
+        black_king_cast = np.ones((1,8,8))
+    else:
+        black_king_cast = np.zeros((1,8, 8))
+    if board.has_queenside_castling_rights(chess.BLACK):
+        black_queen_cast = np.ones((1,8, 8))
+    else:
+        black_queen_cast = np.zeros((1,8, 8))
+    white_cast = np.concatenate((white_king_cast,white_queen_cast))
+    black_cast = np.concatenate((black_king_cast,black_queen_cast))
     if board.turn:
         ret_arr = np.concatenate((white_arr,black_arr))
+        ret_arr = np.concatenate((ret_arr, np.ones((1,8,8))))
+        cast = np.concatenate((white_cast, black_cast))
     else:
         ret_arr = np.concatenate((black_arr, white_arr))
         ret_arr = np.rot90(ret_arr, 2, (1,2))
+        ret_arr = np.concatenate((ret_arr, np.zeros((1,8, 8))))
+        cast = np.concatenate((black_cast, white_cast))
+    ret_arr = np.concatenate((ret_arr, cast))
     return ret_arr
-
-
-
-for move in first_game.mainline_moves():
-    # print(board.has_kingside_castling_rights(chess.BLACK))
-    print(board)
-    print(board.turn)
-    print(chess.square_name(move.from_square))
-    print(chess.square_name(move.to_square))
-    out_arr, code = get_output(move, board.turn)
-    print(out_arr)
-    print(code)
-    board.push(move)
-    #print(pgn_to_arr(board))
-
 
 
 
