@@ -2,11 +2,12 @@ from board import *
 
 pgn = open(r'\Users\dfrid\Downloads\chessgames2\games.pgn')
 
-board_arrs = np.zeros((24000,17,8,8))
-move_arrs = np.zeros((24000,73,8,8))
+game_count = 5000
+board_arrs = np.zeros((game_count*80,17,8,8))
+move_arrs = np.zeros((game_count*80,73,8,8))
 print('done')
 i = 0
-for _ in range(300):
+for _ in range(game_count):
     game = chess.pgn.read_game(pgn)
     board = game.board()
     for count, move in enumerate(game.mainline_moves()):
