@@ -39,6 +39,35 @@ for move in ["N","NW","NE"]:
         codes[("underpromotion", move, promote_to)] = i
         i += 1
 
+def get_move(num, turn):
+    move = num // 64
+    for key, value in codes.items():
+        if value == move:
+            move = key
+            break
+    square_num = num % 64
+    square = [square_num % 8, square_num//8]
+    if turn:
+        square[1] = 7 - square[1]
+    else:
+        square[0] = 7 - square[0]
+    return square, move
+
+def get_output_simple(move, turn):
+    out = np.zeros((2,8,8))
+    from_file = chess.square_file(move.from_square)
+    from_rank = chess.square_rank(move.from_square)
+    to_file = chess.square_file(move.to_square)
+    to_rank = chess.square_rank(move.to_square)
+    if turn:
+        from_location = (7 - from_rank, from_file)
+        to_location = (7 - to_rank, to_file)
+    else:
+        from_location = (from_rank, 7 - from_file)
+        to_location = (to_rank, 7 - to_file)
+    out[0][from_location[0]][from_location[1]] = 1
+    out[1][to_location[0]][to_location[1]] = 1
+    return out
 
 def get_output(move, turn):
     out_arr = np.zeros((73,8,8))
@@ -142,6 +171,8 @@ def pgn_to_arr(board):
         cast = np.concatenate((black_cast, white_cast))
     ret_arr = np.concatenate((ret_arr, cast))
     return ret_arr
+
+
 
 
 
